@@ -150,18 +150,24 @@ if st.button("送信"):
             "timestamp": datetime.datetime.now()
         })
         st.success("送信しました！")
+        st.experimental_rerun()  # ← 送信後に即時更新
     else:
         st.warning("名前とメッセージを入力してください。")
 
-st.subheader("メッセージ一覧")
+st.subheader("メッセージ一覧（最新50件）")
 
-# Firestore からメッセージ取得（時系列順）
-messages = db.collection("chat").order_by("timestamp").stream()
+# Firestore からメッセージ取得（新しい順）
+messages = (
+    db.collection("chat")
+    .order_by("timestamp", direction=firestore.Query.DESCENDING)
+    .limit(50)
+    .stream()
+)
+
+# 表示（新しい順 → 古い順に並べ替え）
+messages = list(messages)[::-1]
 
 for msg in messages:
     data = msg.to_dict()
-    st.write(f"**{data['user']}**：{data['message']}")
-
-
-    
-
+    timestamp = data["timestamp"].strftime("%Y-%m-%d %H:%M:%S")
+    st.write(f"**{data['user']}**：{data['message']}  \n _{timestamp}_")
